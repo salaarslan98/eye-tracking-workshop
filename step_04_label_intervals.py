@@ -139,7 +139,7 @@ def main():
 
     initial_label = "open" if MODE == "blink" else "centre"
     rec = IntervalRecorder(0, initial_label)
-    closed = False  # blink-mode toggle state
+    closed = False  # blink-mode toggle state; always follows rec.cur_label
 
     cache = {}       # small frame cache: idx -> frame, so scrubbing near a
     cache_order = []  # transition doesn't re-decode the same frame repeatedly
@@ -172,7 +172,9 @@ def main():
 
         row = feats.iloc[idx] if idx < len(feats) else None
         value_txt = " ".join(f"{c}={row[c]:+.3f}" for c in VALUE_COLS) if row is not None else "no feature row"
-        state_txt = ("CLOSED" if closed else "open") if MODE == "blink" else rec.cur_label
+        # the recorder is the single source of truth for the current label,
+        # so what is shown is always what will be saved
+        state_txt = rec.cur_label
         lines = [
             f"frame {idx}/{n_frames - 1}  t={idx / fps:5.2f}s",
             value_txt,
@@ -202,6 +204,9 @@ def main():
             playing = not playing
         elif key == ord("u"):
             rec.undo()
+            # undo reopens the previous interval, so take the toggle state
+            # from the recorder instead of trusting the old flag
+            closed = rec.cur_label == "closed"
         elif key == ord("s"):
             rec.to_dataframe(idx, fps).to_csv(OUT_CSV, index=False)
             print(f"Saved progress to {OUT_CSV}")
