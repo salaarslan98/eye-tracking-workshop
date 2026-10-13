@@ -547,12 +547,20 @@ against a simple hand-written rule:
 |---|---|---|
 | Question it answers | Is the eye open or closed? | Which of five directions is the gaze? |
 | How it decides | Gives each number a weight, adds them up, and draws one boundary between "open" and "closed" | Builds many small decision trees, each asking yes/no questions about the numbers, and lets them vote |
-| What it sees that the rule does not | How fast EAR is changing, and where the person is looking | The head position, so a head turn need not be mistaken for a look |
-| Why this model | Two answers, and a simple model is enough to test the idea | Five answers, and the numbers interact: the same iris offset means something else when the head is turned |
+| What it sees that the rule does not | How fast EAR is changing, and where the person is looking | The head position (nose offset and head tilt) alongside the iris offset. Whether that helps is an open question: see the note below the table |
+| Why this model | Two answers, and a simple model is enough to test the idea | Five answers, and the numbers can interact: the same iris offset can mean something else when the head is turned. A forest is able to learn that kind of combination, if the training data shows it |
 
 Both were chosen because they train in seconds on a laptop, cope with very
 little data, and can be inspected afterwards (which numbers did the model
 rely on?).
+
+A note on the head numbers in step 6. Giving the forest the head position
+does **not** mean it has learned to tell a head turn from a look. It is
+trained only on the `eyes_only` clips, where the head stays still, so it
+never sees a head turn during training. The `head_only` check at the end
+of step 6 shows whether head turns fool each method, and the model may be
+fooled just as the simple rule is. Finding out, and working out what to
+change, is part of the exercise.
 
 **The model is not guaranteed to win.** Each notebook ends with a direct
 comparison between the rule and the model, and with so little data the
