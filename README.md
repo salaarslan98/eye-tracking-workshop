@@ -411,7 +411,15 @@ closed.
 
 **Go to the last frame before you press `q`.** The file only covers the
 frames up to where you quit. Step 5 treats every frame after that as
-"open", and step 6 ignores them.
+"open", and step 6 ignores them. If you press `q` earlier, a red warning
+appears in the video window and you must press `q` a second time to quit
+anyway. Any other key carries on.
+
+**Your labels are not overwritten without asking.** If a label file for
+the same clip and labeller already exists, the script asks in the terminal
+whether to overwrite it (`y` or `n`) before the window opens. Answer `n`
+and nothing is changed. To keep both sets of labels, use a different
+`LABELLER` name.
 
 What needs labelling:
 

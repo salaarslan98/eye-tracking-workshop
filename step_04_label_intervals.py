@@ -27,7 +27,8 @@ Controls:
             (left and right AS SEEN IN THE VIDEO, see below)
   u         undo the most recently finished interval
   s         save progress to CSV without quitting
-  q         save and quit
+  q         save and quit (asks you to press q again if you are not on
+            the last frame, because the labels stop where you quit)
 
 Before running, set three things below: MODE, CLIP_NAME and LABELLER.
 Run it once per clip and mode (change the settings and rerun):
@@ -139,6 +140,13 @@ class IntervalRecorder:
 
 
 def main():
+    # never silently replace labels somebody already made
+    if os.path.exists(OUT_CSV):
+        answer = input(f"{OUT_CSV} already exists. Overwrite it? (y/n) ").strip().lower()
+        if answer != "y":
+            raise SystemExit(f"Stopped. {OUT_CSV} was not changed. "
+                             "Use a different LABELLER name to keep both sets of labels.")
+
     cap = cv2.VideoCapture(VIDEO)
     if not cap.isOpened():
         raise SystemExit(f"Could not open {VIDEO}")
@@ -169,11 +177,13 @@ def main():
 
     print(f"Labelling {VIDEO} in '{MODE}' mode ({n_frames} frames, {fps:.1f} fps)")
     print(f"Controls: , / . step | SPACE play/pause | {LEGEND} | u undo | s save | q save+quit")
+    print("Label to the last frame: the file only covers frames up to where you quit.")
     if LEGEND_NOTE:
         print(f"Note: {LEGEND_NOTE}")
 
     idx = 0
     playing = False
+    quit_pending = False  # True after q was pressed before the last frame
     while True:
         frame = get_frame(idx).copy()
         w = frame.shape[1]
@@ -197,10 +207,26 @@ def main():
         for i, line in enumerate(lines):
             cv2.putText(frame, line, (10, 25 + 24 * i), cv2.FONT_HERSHEY_SIMPLEX,
                         0.6, (0, 255, 0), 1, cv2.LINE_AA)
+        if quit_pending:
+            # the label file only covers frames up to where you quit, so
+            # quitting early is easy to do by accident and hard to notice later
+            warning = [
+                f"NOT THE LAST FRAME: labels would stop at frame {idx} of {n_frames - 1}.",
+                "Press q again to quit anyway, any other key to carry on.",
+            ]
+            for i, line in enumerate(warning):
+                cv2.putText(frame, line, (10, 25 + 24 * (len(lines) + 1 + i)), cv2.FONT_HERSHEY_SIMPLEX,
+                            0.6, (0, 0, 255), 2, cv2.LINE_AA)
 
         cv2.imshow(f"step 4 - label intervals ({MODE})", frame)
         wait_ms = max(1, int(1000 / fps)) if playing else 0
         key = cv2.waitKey(wait_ms) & 0xFF
+
+        if quit_pending:
+            if key == ord("q"):   # second q: the user really wants to stop here
+                rec.to_dataframe(idx, fps).to_csv(OUT_CSV, index=False)
+                break
+            quit_pending = False  # any other key cancels, then is handled as usual
 
         if playing:
             idx = min(idx + 1, n_frames - 1)
@@ -224,8 +250,12 @@ def main():
             rec.to_dataframe(idx, fps).to_csv(OUT_CSV, index=False)
             print(f"Saved progress to {OUT_CSV}")
         elif key == ord("q"):
-            rec.to_dataframe(idx, fps).to_csv(OUT_CSV, index=False)
-            break
+            if idx < n_frames - 1:
+                quit_pending = True   # ask for a second q (warning is drawn above)
+                playing = False
+            else:
+                rec.to_dataframe(idx, fps).to_csv(OUT_CSV, index=False)
+                break
         elif MODE == "blink" and key == ord("b"):
             closed = not closed
             rec.set_label(idx, "closed" if closed else "open")
