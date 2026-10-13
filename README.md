@@ -25,9 +25,10 @@ unpack it. All commands below are run from inside this folder.
 
 ## 1. Before you start (once)
 
-You need **Python 3.12** (64-bit). Python 3.10 and 3.11 should also work
-(untested). **Python 3.13 does not work**: the pinned MediaPipe version
-(0.10.14) has no build for it. Check what you have:
+You need **Python 3.12** (64-bit). That is the tested version. Python 3.11
+should also work (untested). **Python 3.10 and 3.13 will not install** with
+the pinned packages: several of them need 3.11 or newer, and the pinned
+MediaPipe version (0.10.14) has no build for 3.13. Check what you have:
 
 | System | Check | If missing |
 |---|---|---|
@@ -85,9 +86,10 @@ It should end with `Face mesh loaded OK`. MediaPipe also prints warnings
 
 If the install fails or the check crashes:
 
-- **"No matching distribution found for mediapipe==0.10.14"**: your Python
-  is the wrong version (for example 3.13). Make the environment again with
-  3.12.
+- **"No matching distribution found for ..."** (for example for
+  `mediapipe==0.10.14` or `pandas==3.0.6`): your Python is the wrong
+  version (3.13 or newer, or 3.10 or older). Make the environment again
+  with 3.12.
 - **A DLL error on Windows when importing `cv2` or `mediapipe`**: installing
   the current "Microsoft Visual C++ Redistributable" usually fixes it
   (a common cause, not verified on every machine).
