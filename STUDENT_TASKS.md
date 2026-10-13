@@ -104,9 +104,9 @@ sees today. Is a prompt as trustworthy a label as one you made by hand?
 
 ## 1b. Measure how much labellers agree with each other
 
-**Why:** this came out of a real observation while building this workshop:
-one definition of "closed" was *fully shut, open again at the first hint of
-opening* — strict at the boundary. A fixed EAR-threshold rule has its own,
+**Why:** people do not agree on exactly where a blink starts and ends. One
+person's definition of "closed" might be *fully shut, open again at the
+first hint of opening* — strict at the boundary. A fixed EAR-threshold rule has its own,
 different implicit boundary (wherever the EAR curve happens to cross the
 cutoff number), and someone else watching the same footage might draw the
 line differently again. Three different "closed" definitions, same clip.
@@ -180,7 +180,7 @@ needs at least two people.
 
 ---
 
-## 2. Finish the dip-based blink detector (left for you on purpose)
+## 2. Build a dip-based blink detector
 
 **Why:** you already know *why* a fixed EAR threshold fails (gaze-dependent
 baseline). A smarter rule-based detector — no ML — looks for local dips in
@@ -261,19 +261,27 @@ These tasks use the features and models as building blocks for something
 new. The measuring does not go away: each one still asks you to say how
 well it works and where it breaks.
 
-## 4. Fatigue classifier (step 7 from the original plan)
+One idea that motivated this workshop is **gaze control** as assistive
+technology: letting someone who cannot use their hands, for example a
+child with limited mobility, steer a small motorised toy vehicle by
+looking. The view is divided into zones (forward, left, right, stop), and
+looking at a zone for long enough gives that command. Tasks 5 and 6 are
+steps towards it, and it is called "the gaze-control idea" below.
 
-**Why:** the longer-term motivation for this whole workshop is assistive
-tech — the project notes mention noticing when someone is tired or losing
-attention, not just where they're looking.
+## 4. Fatigue classifier
+
+**Why:** a system that watches the eyes could do more than follow where
+someone is looking. It could also notice when they are tired or losing
+attention, which matters for anything from driving to a long session with
+an assistive device.
 
 **Starting point:** using 30-second sliding windows over a clip, compute:
 blink rate, mean blink duration, fraction of time EAR is below some
-"mostly closed" level, and the spread (std) of `gaze_x`/`gaze_y`. You'll
-need to decide which clip stands in for a boring task and which stands in
-for an alert one (ask about it — the clips don't have a built-in fatigue
-label, you'll need a sensible standby: compare against chance, don't claim
-a validated fatigue measure).
+"mostly closed" level, and the spread (std) of `gaze_x`/`gaze_y`. You
+decide which clip stands in for "bored" and which for "alert" (for
+example, one recorded after a long, dull task and one recorded when
+fresh). The clips carry no fatigue label, so compare your results with
+chance, and do not describe them as a validated fatigue measure.
 
 **Measure:** a confusion matrix against chance level, evaluated on a
 *different* recording session than it was tuned on.
@@ -297,11 +305,10 @@ label actually means.
 
 ---
 
-## 5. Gaze-to-screen calibration and regression (the original "step 4/5" plan)
+## 5. Gaze-to-screen calibration and regression
 
-**Why:** this is the real prerequisite for the vehicle-control extension —
-mapping eye features to *where on a screen* someone is looking, not just a
-direction.
+**Why:** this is what the gaze-control idea needs first: mapping eye
+features to *where on a screen* someone is looking, not just a direction.
 
 **Starting point:** you'll need a way to show dots at known screen
 positions and log which face features were measured at each dot — this
@@ -362,8 +369,8 @@ looking (accuracy).
 **With a live camera (optional):** this task is the live one, but there
 is still a choice to make: draw the raw features, or the prediction of a
 model trained on your recorded clips (step 6), or of one trained on
-prompted live data. If you add command zones for the vehicle idea (look
-left for long enough = "turn left"), the dwell time is yours to tune:
+prompted live data. If you add command zones for the gaze-control idea
+(look left for long enough = "turn left"), the dwell time is yours to tune:
 too short and it fires by accident, too long and it feels broken.
 
 **Difficulty:** medium, mostly straightforward if your camera route works.
@@ -384,8 +391,8 @@ when the head moves a lot). A good idea is built on the first kind. Some
 directions, only to start you thinking:
 
 - Communication: blink patterns or looks as yes/no answers or a small menu.
-- Control: looking at a zone for long enough triggers an action (the toy
-  vehicle idea behind this workshop).
+- Control: looking at a zone for long enough triggers an action (the
+  gaze-control idea described at the start of Part B).
 - Monitoring: how blink rate or gaze changes during reading, screen work or
   a game.
 - Accessibility: something a person with limited hand movement could use.
@@ -411,8 +418,8 @@ down. Short answers are fine.
 "We want to know whether..." or "We want to build something that...". If
 it takes a paragraph, the idea is still too big.
 
-**2. Say who it is for and why it matters.** A child steering a toy car, a
-researcher who needs trustworthy labels, yourself out of curiosity. The
+**2. Say who it is for and why it matters.** Someone steering a device by
+gaze, a researcher who needs trustworthy labels, yourself out of curiosity. The
 answer decides which mistakes are serious. A missed blink and a false
 blink are not equally bad for every use.
 

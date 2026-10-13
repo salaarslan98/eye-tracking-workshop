@@ -16,8 +16,8 @@ script makes that judging fast and saves it as a CSV the later steps read.
 
 It does NOT run MediaPipe. It reuses the per-frame EAR / gaze numbers
 already saved by step_02 / step_03, and only opens the video for display.
-That keeps it fast to start and matches the project rule: save
-intermediate results once, do not recompute them.
+That keeps it fast to start and follows the rule used throughout the
+workshop: save intermediate results once, do not recompute them.
 
 Controls:
   , / .     step one frame back / forward

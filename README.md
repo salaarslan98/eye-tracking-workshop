@@ -528,7 +528,7 @@ The whole workshop is one pipeline with four stages:
 | 1. Detect | A video frame goes in, 478 face points come out | Step 1 | MediaPipe (a ready-made neural network) |
 | 2. Measure | The points are turned into a few meaningful numbers: how open the eye is (EAR), where the iris sits, how the head is turned | Steps 2 and 3 | You, with geometry |
 | 3. Decide | The numbers are turned into an answer: open or closed, left / right / up / down / centre | Steps 2, 5 and 6 | A rule you write, or a model that learns the rule |
-| 4. Use | The answer does a job: count blinks, steer a toy car, notice tiredness | `STUDENT_TASKS.md` | Your project |
+| 4. Use | The answer does a job: count blinks, control a device by looking, notice tiredness | `STUDENT_TASKS.md` | Your project |
 
 Stage 3 is where the two machine learning models come in, and each is set
 against a simple hand-written rule:
