@@ -1,0 +1,11 @@
+mediapipe==0.10.14
+numpy<2
+opencv-contrib-python
+pandas
+scikit-learn
+scipy
+matplotlib
+joblib
+jupyter
+nbconvert
+ipykernel

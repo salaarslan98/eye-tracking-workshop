@@ -1,0 +1,40 @@
+# Keep recordings and everything made from them out of the repository.
+# Faces and eyes are personal data: clips, features and labels stay local.
+
+# --- recordings ---
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+
+# --- files the steps generate (EAR, features, hand labels) ---
+*.csv
+
+# --- plots and saved models ---
+*.png
+*.jpg
+*.jpeg
+*.joblib
+*.pkl
+
+# --- Python environment and caches ---
+my-venv/
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+
+# --- editor and operating system clutter ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- assistant / tooling files, not part of the workshop ---
+.claude/
+CLAUDE.md
