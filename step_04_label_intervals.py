@@ -24,6 +24,7 @@ Controls:
   SPACE     play / pause (plays at the clip's own fps)
   b         [blink mode] toggle "eyes closed" on/off at the current frame
   1-5       [gaze mode] set the current label: 1 centre 2 left 3 right 4 up 5 down
+            (left and right AS SEEN IN THE VIDEO, see below)
   u         undo the most recently finished interval
   s         save progress to CSV without quitting
   q         save and quit
@@ -39,9 +40,14 @@ clip), so one clip can also be labelled independently by two people. That
 is useful for checking how much people agree on where a blink actually
 starts and ends (see STUDENT_TASKS.md task 1b).
 
-Agree on your definitions before anyone starts, and write them down: what
-counts as "closed", and whether "left" means left in the picture or the
-person's own left. Do not decide frame by frame as you go.
+Agree on what counts as "closed" before anyone starts, and write it down.
+Do not decide frame by frame as you go.
+
+"Left" and "right" always mean left and right AS SEEN IN THE VIDEO: press
+2 (left) when the eyes move towards the left edge of the picture. The
+video is not mirrored, so this is the opposite of the person's own left
+and right. Label what you see. step_06's simple rule assumes this
+convention, so labels made the other way round would silently invert it.
 """
 import os
 import cv2
@@ -59,6 +65,7 @@ if MODE == "blink":
     VALUE_COLS = ["ear"]
     LABELS = {ord("b"): None}       # 'b' toggles; handled specially below
     LEGEND = "b = toggle eyes closed/open"
+    LEGEND_NOTE = ""
 elif MODE == "gaze":
     VIDEO = f"eyes_only_{CLIP_NAME}.mp4"
     FEATURES_CSV = f"features_eyes_only_{CLIP_NAME}.csv"  # made by step_03
@@ -66,6 +73,8 @@ elif MODE == "gaze":
     LABELS = {ord("1"): "centre", ord("2"): "left", ord("3"): "right",
               ord("4"): "up", ord("5"): "down"}
     LEGEND = "1 centre | 2 left | 3 right | 4 up | 5 down"
+    # shown under the legend, so the convention is in front of the labeller
+    LEGEND_NOTE = "left / right = as seen in the video"
 else:
     raise ValueError("MODE must be 'blink' or 'gaze'")
 
@@ -160,6 +169,8 @@ def main():
 
     print(f"Labelling {VIDEO} in '{MODE}' mode ({n_frames} frames, {fps:.1f} fps)")
     print(f"Controls: , / . step | SPACE play/pause | {LEGEND} | u undo | s save | q save+quit")
+    if LEGEND_NOTE:
+        print(f"Note: {LEGEND_NOTE}")
 
     idx = 0
     playing = False
@@ -181,6 +192,8 @@ def main():
             f"current label: {state_txt}",
             LEGEND,
         ]
+        if LEGEND_NOTE:
+            lines.append(LEGEND_NOTE)
         for i, line in enumerate(lines):
             cv2.putText(frame, line, (10, 25 + 24 * i), cv2.FONT_HERSHEY_SIMPLEX,
                         0.6, (0, 255, 0), 1, cv2.LINE_AA)

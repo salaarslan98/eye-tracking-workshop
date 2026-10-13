@@ -145,9 +145,9 @@ no spaces, no capitals. Use the same `<name>` for all three of your clips.
   the exercise below). If each person does something different, you cannot
   tell whether a difference in the results comes from the person or from
   the script.
-- Before labelling (step 4), agree on your definitions and write them down:
-  what counts as "closed", and what "left" means. If two people label
-  "left" the opposite way round, the model is taught two opposite things.
+- Before labelling (step 4), agree on what counts as "closed" and write it
+  down. "Left" and "right" are not up for discussion: they always mean
+  **left and right as seen in the video** (see section 4).
 - In steps 5 and 6, the setting `TEST_CLIP` lets you train on some people
   and test on a person the model has never seen.
 
@@ -421,10 +421,25 @@ What needs labelling:
   cover the pupil until the first frame they uncover it) and apply that
   rule the same way every time.
 - **Gaze mode, every `eyes_only_<name>.mp4`.** It writes
-  `labels_eyes_only_<name>__<labeller>.csv`. Decide before you start which
-  side counts as "left": as it appears in the video, or the person's own
-  left. Either is fine, but the whole group must use the same one. Give
-  every separate look its own label, including the returns to centre.
+  `labels_eyes_only_<name>__<labeller>.csv`. **"Left" and "right" always
+  mean left and right as seen in the video**: label "left" when the eyes
+  move towards the left edge of the picture. The video is not mirrored, so
+  this is the opposite of what the person did. If you looked to your own
+  left while recording, it shows as a look to the right, and you label it
+  "right". Label what you see, not what you remember doing. Give every
+  separate look its own label, including the returns to centre.
+
+  This convention is fixed because step 6's simple rule is written for
+  it: a positive `gaze_x` means the iris sits towards the right of the
+  picture, and the rule calls that "right". Labels made the other way
+  round would silently turn that comparison upside down.
+
+  One thing that looks like a contradiction but is not: the landmark
+  names in the code (`R_EYE`, `L_EYE`, "right iris") use the **person's
+  own** right and left, because that is how MediaPipe numbers a face. So
+  the person's right eye is on the left of the picture. The names say
+  *which eye* a point belongs to. The gaze labels say *which way the eyes
+  are pointing in the picture*. They are two different things.
 - Run step 4 **after** steps 2 and 3, because it reads the CSV files they
   make. Change `MODE` and `CLIP_NAME` and run it again for the next clip.
 - In a group, share the labelling out. Labelling someone else's clip is a
