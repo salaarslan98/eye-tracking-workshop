@@ -276,7 +276,10 @@ honest answer to "would this work for a new user?".
 ## Optional extension: a live camera instead of a recorded clip
 
 The guided steps read saved video files, so a live camera is an extension
-for after step 6. Notes for anyone who wants to try:
+for after step 6. No code is provided: this section describes how to
+approach it. None of it has been tested here.
+
+### Getting the camera to work
 
 - **WSL has no webcam** (`/dev/video*` does not exist). Run Python
   natively on Windows, Linux or macOS instead. On macOS, the terminal
@@ -285,14 +288,95 @@ for after step 6. Notes for anyone who wants to try:
 - Steps 1 to 3 open the video with `cv2.VideoCapture(...)`, using a file
   name. Passing the number `0` instead opens the default camera. Live
   video has no end, so you also need a way to stop (for example press
-  `q`). Step 4 and notebooks 5 and 6 work on saved clips and labels, so
-  record a clip for those and use the file.
+  `q`).
 - Keep the video **unmirrored**, as the clips are. A mirrored picture
   flips the sign of the left/right features.
-- The models in steps 5 and 6 are trained on your group's clips only. A
-  different person, light, camera or distance shifts the EAR baseline and
-  iris offsets, so expect worse results on live video until you record and
-  label more data. This is untested.
+
+### How to approach a model that works on live video
+
+The main idea: **a model is not trained "on live video". It is trained on
+saved, labelled data and then *used* on live video.** Training needs the
+true answer for every frame, and a live stream has none. So the work
+splits into two parts: getting labelled data to train on, and a program
+that uses the trained model frame by frame.
+
+**1. Get labelled training data. There are two ways, and you can mix
+them.**
+
+*Option A: use the recorded clips you already have.* This is the easier
+route, and it needs no new recording. The clips and hand labels from steps
+1 to 4 are exactly the kind of data a live model needs, so the model you
+train in step 5 or 6 can be the one you use on the camera. To make it
+carry over:
+
+- Record the clips with the **same camera, seat and lighting** you will
+  use live. A model trained on phone clips and used on a laptop webcam
+  sees shifted numbers.
+- Build the features the backward-looking way described in point 3 below,
+  in training as well as live.
+- More people and more clips in the training data make it more likely to
+  work on whoever sits down in front of the camera (see `TEST_CLIP`).
+
+*Option B: collect new data from the camera with prompts.* With a live
+camera you can get labels without step 4's hand labelling, by telling the
+person what to do and recording what you told them:
+
+- Show a prompt on screen ("look LEFT", "blink now", or a dot to look at),
+  compute the same features as step 3 for every frame, and save each row
+  with the prompt that was showing as its label.
+- People need time to react. Throw away roughly the first half second
+  after each prompt changes, or the label says "left" while the eyes are
+  still moving there.
+- A prompt is what you *asked for*, not what happened. People blink, glance
+  away or react late. Play some of it back and check before you trust it.
+- Save everything to a CSV, as the steps do. Then you can retrain as often
+  as you like without recording again.
+
+**2. Train offline, exactly as in steps 5 and 6.** With option A this is
+those notebooks as they are. With option B the saved CSV has the same
+columns, so the same logic applies. Two rules carry over:
+
+- Split by whole prompt (one "look" or one blink), never by frame, or hold
+  out a whole recording session. Neighbouring frames are near-identical.
+- Save the trained model, and anything fitted alongside it such as step
+  5's scaler, to a file. `joblib` is already in `requirements.txt` for
+  this. The live program loads it instead of training again.
+
+**3. Use the model live, one frame at a time.** For each new frame: run
+MediaPipe, compute the features, call the model's `predict`. Three things
+are different from the notebooks:
+
+- **The features must be computed the same way as in training**: same
+  columns, same order, same scaling. A mismatch here gives confident
+  nonsense, not an error message.
+- **You cannot look into the future.** Step 5's `ear_min3` uses the frames
+  just before *and after* each frame, and step 3 smooths with a centred
+  window. Live, the later frames do not exist yet. Keep a short buffer of
+  the last few frames and use only those, and train the model with
+  features built the same backward-looking way.
+- **Single-frame predictions flicker.** Smooth the output, for example by
+  taking the most common prediction over the last 5 to 10 frames, or by
+  requiring a direction to hold for some time before acting on it (dwell
+  time). More smoothing means a steadier result and a slower reaction.
+  That trade-off is the design decision for anything that controls a
+  device.
+
+**4. Calibrate for the person in front of the camera.** Open-eye EAR and
+the resting iris position differ between people and sessions. A few seconds
+of "look at the centre, eyes open" at the start gives a personal baseline
+to subtract or divide by before the features reach the model. Use the same
+correction on the training data.
+
+**5. Test it honestly.** Record a separate prompted session, ideally on
+another day or with another person, and score the live predictions against
+the prompts the same way steps 5 and 6 do. Report the delay too (how long
+after a look or a blink does the output change?) and how many frames per
+second your laptop manages, since both matter for a live system and neither
+shows up in an accuracy number.
+
+Expect it to work worse than the notebooks suggest at first. The models in
+steps 5 and 6 only ever saw your group's clips, and a different person,
+light, camera or distance shifts the EAR baseline and the iris offsets.
 
 ## 4. Step 4 is a script, not a notebook
 
@@ -402,3 +486,73 @@ What you add and what the steps make (`<name>` = each person):
 Your clips and the CSV files made from them are recordings of faces and
 eyes. Keep them on the group's own machines and do not put them in a public
 repository. If you record anyone outside your group, ask them first.
+
+## How the pieces fit together
+
+A fair question before starting: **MediaPipe already finds the eyes, so why
+train any models at all?**
+
+Because MediaPipe answers a different question. It tells you *where the
+points of the face are*. It does not tell you what they mean. For every
+frame it returns 478 positions, and that is all. It does not say "this is
+a blink" or "this person is looking left". Getting from positions to a
+decision is the part you build, and it is what the workshop is about.
+
+The whole workshop is one pipeline with four stages:
+
+| Stage | What happens | Where | Who does the work |
+|---|---|---|---|
+| 1. Detect | A video frame goes in, 478 face points come out | Step 1 | MediaPipe (a ready-made neural network) |
+| 2. Measure | The points are turned into a few meaningful numbers: how open the eye is (EAR), where the iris sits, how the head is turned | Steps 2 and 3 | You, with geometry |
+| 3. Decide | The numbers are turned into an answer: open or closed, left / right / up / down / centre | Steps 2, 5 and 6 | A rule you write, or a model that learns the rule |
+| 4. Use | The answer does a job: count blinks, steer a toy car, notice tiredness | `STUDENT_TASKS.md` | Your project |
+
+Stage 3 is where the two machine learning models come in, and each is set
+against a simple hand-written rule:
+
+- **The simple way: a rule.** "Closed if EAR is below a cutoff" (step 2),
+  "left if the iris offset is beyond a cutoff" (step 6). It takes minutes
+  to write and it is easy to understand. It also breaks in predictable
+  ways: looking down lowers EAR without a blink, and turning the head
+  moves the iris without a look.
+- **The learned way: a model.** Instead of you choosing the cutoff, the
+  model is shown frames together with the right answer (your labels from
+  step 4) and works out its own rule. It can combine several numbers at
+  once, which a single cutoff cannot.
+
+| | Logistic regression (step 5) | Random forest (step 6) |
+|---|---|---|
+| Question it answers | Is the eye open or closed? | Which of five directions is the gaze? |
+| How it decides | Gives each number a weight, adds them up, and draws one boundary between "open" and "closed" | Builds many small decision trees, each asking yes/no questions about the numbers, and lets them vote |
+| What it sees that the rule does not | How fast EAR is changing, and where the person is looking | The head position, so a head turn need not be mistaken for a look |
+| Why this model | Two answers, and a simple model is enough to test the idea | Five answers, and the numbers interact: the same iris offset means something else when the head is turned |
+
+Both were chosen because they train in seconds on a laptop, cope with very
+little data, and can be inspected afterwards (which numbers did the model
+rely on?).
+
+**The model is not guaranteed to win.** Each notebook ends with a direct
+comparison between the rule and the model, and with so little data the
+rule sometimes comes out ahead. That comparison is the point. The habit to
+take away is the order of work: measure, try the simple rule, try a model,
+compare them fairly on data the model has not seen, and say honestly which
+did better and how sure you are.
+
+**How this connects to the open tasks.** Every task in `STUDENT_TASKS.md`
+is this same pipeline with one part changed:
+
+- Tasks 1 to 3 improve or test stage 3: more data, better labels, a better
+  rule, a fairer comparison.
+- Tasks 4 to 6 change stage 4, and feed the model different numbers or ask
+  it a different question. A fatigue classifier is the same kind of model
+  given blink rate over half a minute instead of single frames.
+  Gaze-to-screen calibration predicts a position instead of a category.
+- Deep learning (the "Going further" section of `STUDENT_TASKS.md`)
+  replaces stages 2 and 3 together: a network looks at the picture and
+  learns its own measurements. The rule and the two models from this
+  workshop then become the baseline it has to beat.
+
+One honest footnote: newer versions of MediaPipe can also output ready-made
+scores such as "eye blink". Those come from a second model that somebody
+else trained in exactly this way, on labelled examples. Building the stages
+yourself is how you learn what such a score can and cannot be trusted for.
